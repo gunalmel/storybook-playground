@@ -64,13 +64,61 @@
   "scripts": {
     "start": "node scripts/start.js",
     "build": "node scripts/build.js",
-    "test": "node scripts/test.js",
+    "test:watch": "node scripts/test.js",
     "storybook": "start-storybook -p 6006",
-    "build-storybook": "build-storybook",
     "start:storybook": "start-storybook -p 6006 -s public --ci",
     "cy:test:storybook": "cypress run — headless -C cypress.config.ts",
+    "build-storybook": "build-storybook -o docs-build -s src/stories/assets",
+    "prebuild": "tsc --noEmit",
+    "test:jest-cra": "CI=true npm test -- --env=jsdom --coverage",
+    "test:jest": "jest --env=jsdom --coverage",
     "ci:start-and-test-storybook": "cross-env START_SERVER_AND_TEST_INSECURE=1 start-server-and-test start:storybook http://localhost:6006 cy:test:storybook",
-    "build-storybook": "build-storybook -o docs-build -s src/stories/assets"
+    "report:coverage": "nyc report --reporter=html",
+    "report:coverage:text": "nyc report --reporter=text",
+    "report:coverage:summary": "nyc report --reporter=text-summary",
+    "rm:coverage": "rm -rf .nyc_output && rm -rf *-coverage coverage reports",
+    "check:coverage": "nyc report --reporter=text-summary --check-coverage",
+    "mkdir:reports": "mkdir reports || true",
+    "pretest": "npm run rm:coverage",
+    "test": "npm run ci:start-and-test-storybook && npm run test:jest",
+    "posttest": "npm run report:combined",
+    "precopy:reports": "npm run mkdir:reports",
+    "copy:reports": "cp cypress-coverage/coverage-final.json reports/from-cypress.json && cp jest-coverage/coverage-final.json reports/from-jest.json",
+    "precombine:reports": "npm run copy:reports && mkdir .nyc_output || true",
+    "combine:reports": "npx nyc merge reports && mv coverage.json .nyc_output/out.json",
+    "prereport:combined": "npm run combine:reports",
+    "report:combined": "npx nyc report --reporter lcov --reporter text --report-dir coverage"
+  },
+  "nyc": {
+    "extends": ["@istanbuljs/nyc-config-typescript","@istanbuljs/nyc-config-babel"],
+    "all": true,
+    "instrument": true,
+    "check-coverage": true,
+    "report-dir":"cypress-coverage",
+    "extension": [
+      ".ts",
+      ".tsx"
+    ],
+    "exclude": [
+      ".storybook/**",
+      "coverage/**",
+      "packages/*/test{,s}/**",
+      "**/*.d.ts",
+      "test{,s}/**",
+      "**/__tests__/**",
+      "**/{ava,babel,nyc}.config.{js,cjs,mjs}",
+      "**/jest.config.{js,cjs,mjs,ts}",
+      "**/{karma,rollup,webpack}.config.js",
+      "**/.{eslint,mocha}rc.{js,cjs}",
+      "**/*.spec.{js,cjs,mjs,ts}",
+      "**/*.test.{js,cjs,mjs,ts}",
+      "**/*.cy.{js,cjs,mjs,ts}"
+    ],
+    "reporter": [
+      "lcov",
+      "json",
+      "text"
+    ]
   },
   "eslintConfig": {
     "extends": [
@@ -94,10 +142,14 @@
     "roots": [
       "<rootDir>/src"
     ],
+    "coverageDirectory": "jest-coverage",
     "collectCoverageFrom": [
       "src/**/*.{js,jsx,ts,tsx}",
-      "!src/**/*.d.ts"
+      "!src/**/*.d.ts",
+      "!src/stories/**/*"
     ],
+
+    "coverageProvider": "v8",
     "setupFiles": [
       "react-app-polyfill/jsdom"
     ],
@@ -141,12 +193,11 @@
     ],
     "resetMocks": true
   },
-  "babel": {
-    "presets": [
-      "react-app"
-    ]
-  },
   "devDependencies": {
+    "@babel/preset-react": "^7.18.6",
+    "@cypress/code-coverage": "^3.10.0",
+    "@istanbuljs/nyc-config-babel": "^3.0.0",
+    "@istanbuljs/nyc-config-typescript": "^1.0.2",
     "@storybook/addon-actions": "^6.5.12",
     "@storybook/addon-essentials": "^6.5.12",
     "@storybook/addon-interactions": "^6.5.12",
@@ -156,8 +207,12 @@
     "@storybook/react": "^6.5.12",
     "@storybook/testing-library": "^0.0.13",
     "@types/jest": "^29.1.1",
+    "babel-plugin-istanbul": "^6.1.1",
     "cross-env": "^7.0.3",
     "cypress": "^10.9.0",
-    "start-server-and-test": "^1.14.0"
+    "istanbul": "^0.4.5",
+    "source-map-support": "^0.5.21",
+    "start-server-and-test": "^1.14.0",
+    "ts-node": "^10.9.1"
   }
 }

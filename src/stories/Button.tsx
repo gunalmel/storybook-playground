@@ -1,6 +1,9 @@
 import React from 'react';
 import './button.css';
 
+/**
+ * Button component properties.
+ */
 interface ButtonProps {
   /**
    * Is this the principal call to action on the page?
